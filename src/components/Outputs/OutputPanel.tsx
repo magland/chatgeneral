@@ -15,11 +15,12 @@ interface OutputPanelProps {
     approveScript?: (id: string) => void;
     denyScript?: (id: string) => void;
     retryServerCheck?: (id: string) => void;
+    usePublicServer?: (id: string) => void;
   };
 }
 
 export function OutputPanel({ outputsHook }: OutputPanelProps) {
-  const { outputs, loading, error, deleteOutput, clearAll, approveScript, denyScript, retryServerCheck } = outputsHook;
+  const { outputs, loading, error, deleteOutput, clearAll, approveScript, denyScript, retryServerCheck, usePublicServer } = outputsHook;
   const [confirmClear, setConfirmClear] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevOutputsLengthRef = useRef<number>(0);
@@ -147,6 +148,7 @@ export function OutputPanel({ outputsHook }: OutputPanelProps) {
               onApprove={approveScript}
               onDeny={denyScript}
               onRetryServerCheck={retryServerCheck}
+              onUsePublicServer={usePublicServer}
             />
           ))
         )}

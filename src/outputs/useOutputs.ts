@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { OutputItem, OutputEmitter } from './types';
+import { getServerUrl, usePublicServer as setToPublicServer } from '../serverConfig';
 
 /**
  * React hook for managing outputs in memory only (no persistence)
@@ -109,13 +110,40 @@ export const useOutputs = () => {
    * Retry server health check and proceed to approval if healthy
    */
   const retryServerCheck = useCallback(async (id: string) => {
-    const FILE_SERVER_URL = "http://localhost:3339";
+    // Set to checking state
+    updateServerHealth(id, 'checking');
+    
+    try {
+      const healthResponse = await fetch(`${getServerUrl()}/health`, {
+        method: "GET",
+      });
+
+      if (!healthResponse.ok) {
+        // Server responded but not healthy
+        updateServerHealth(id, 'unhealthy', `Server responded with status ${healthResponse.status}`);
+        return;
+      }
+
+      // Server is healthy, update the status
+      updateServerHealth(id, 'healthy');
+    } catch (error) {
+      // Server is not running or unreachable
+      updateServerHealth(id, 'unhealthy', error instanceof Error ? error.message : "Unknown error");
+    }
+  }, [updateServerHealth]);
+
+  /**
+   * Switch to using the public server and retry health check
+   */
+  const usePublicServer = useCallback(async (id: string) => {
+    // Switch to public server
+    setToPublicServer();
     
     // Set to checking state
     updateServerHealth(id, 'checking');
     
     try {
-      const healthResponse = await fetch(`${FILE_SERVER_URL}/health`, {
+      const healthResponse = await fetch(`${getServerUrl()}/health`, {
         method: "GET",
       });
 
@@ -155,5 +183,6 @@ export const useOutputs = () => {
     denyScript,
     updateServerHealth,
     retryServerCheck,
+    usePublicServer,
   };
 };

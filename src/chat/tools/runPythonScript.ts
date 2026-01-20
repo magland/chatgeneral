@@ -1,6 +1,6 @@
 import { QPTool, ToolExecutionContext } from "../types";
+import { getServerUrl } from "../../serverConfig";
 
-const FILE_SERVER_URL = "http://localhost:3339";
 const API_KEY = "z9-local-file-access-key-2026";
 
 // Supported image file extensions
@@ -87,7 +87,7 @@ export const runPythonScriptTool: QPTool = {
       // Check server health first
       if (context.updateServerHealth) {
         try {
-          const healthResponse = await fetch(`${FILE_SERVER_URL}/health`, {
+          const healthResponse = await fetch(`${getServerUrl()}/health`, {
             method: "GET",
           });
 
@@ -128,7 +128,7 @@ export const runPythonScriptTool: QPTool = {
     }
 
     try {
-      const response = await fetch(`${FILE_SERVER_URL}/api/run-python-script`, {
+      const response = await fetch(`${getServerUrl()}/api/run-python-script`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -172,7 +172,7 @@ export const runPythonScriptTool: QPTool = {
               
               // Fetch the image content as binary
               const imageResponse = await fetch(
-                `${FILE_SERVER_URL}/files/${imagePath}`
+                `${getServerUrl()}/files/${imagePath}`
               );
               
               if (imageResponse.ok) {

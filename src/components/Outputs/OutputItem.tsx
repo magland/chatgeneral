@@ -7,6 +7,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import ImageIcon from '@mui/icons-material/Image';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CloudIcon from '@mui/icons-material/Cloud';
 import { OutputItem as OutputItemType } from '../../outputs/types';
 import { useState } from 'react';
 
@@ -16,9 +17,10 @@ interface OutputItemProps {
   onApprove?: (id: string) => void;
   onDeny?: (id: string) => void;
   onRetryServerCheck?: (id: string) => void;
+  onUsePublicServer?: (id: string) => void;
 }
 
-export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerCheck }: OutputItemProps) {
+export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerCheck, onUsePublicServer }: OutputItemProps) {
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -249,15 +251,26 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
       {output.type === 'python-script' && output.metadata?.pendingApproval && (
         <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           {output.metadata.serverHealthCheck === 'unhealthy' && (
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => onDeny?.(output.id)}
-              startIcon={<BlockIcon />}
-              size="small"
-            >
-              Cancel
-            </Button>
+            <>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => onUsePublicServer?.(output.id)}
+                startIcon={<CloudIcon />}
+                size="small"
+              >
+                Use Public Server
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => onDeny?.(output.id)}
+                startIcon={<BlockIcon />}
+                size="small"
+              >
+                Cancel
+              </Button>
+            </>
           )}
           {output.metadata.serverHealthCheck === 'healthy' && (
             <>
