@@ -676,8 +676,15 @@ ${plainTextConversation}`;
         return [];
       }
     }
+    // If no assistant messages, check system prompt
+    if (systemPrompt) {
+      const { suggestions } = parseSuggestions(systemPrompt);
+      if (suggestions.length > 0) {
+        return suggestions;
+      }
+    }
     return [];
-  }, [chat.messages]);
+  }, [chat.messages, systemPrompt]);
 
   return {
     chat,
