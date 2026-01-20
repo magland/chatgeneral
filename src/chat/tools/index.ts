@@ -1,4 +1,4 @@
-import type { Tool, ToolContext } from "react-ai-chat";
+import { Tool, ToolContext } from "../../react-ai-chat";
 import type { ToolExecutionContext } from "../types";
 import { fetchUrlTool } from "./fetchUrl";
 import { runPythonScriptTool } from "./runPythonScript";

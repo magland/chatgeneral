@@ -1,4 +1,4 @@
-import type { CompletionFunction } from "react-ai-chat";
+import { CompletionFunction } from "../react-ai-chat";
 import { getStoredOpenRouterApiKey } from "./apiKeyStorage";
 import { parseCompletionStream } from "./parseCompletionStream";
 

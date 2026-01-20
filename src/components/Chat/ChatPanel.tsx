@@ -2,13 +2,13 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { Alert, Box, IconButton, Paper, Typography } from "@mui/material";
 import { ReactNode, useCallback, useMemo, useState } from "react";
-import { ChatPanel, type ToolContext } from "react-ai-chat";
 import { getStoredOpenRouterApiKey } from "../../chat/apiKeyStorage";
 import { AVAILABLE_MODELS, CHEAP_MODELS, DEFAULT_MODEL } from "../../chat/availableModels";
 import { createCompletionFunction } from "../../chat/createCompletionFunction";
 import { tools } from "../../chat/tools";
 import ChatSettingsDialog from "./ChatSettingsDialog";
 import { OutputEmitter } from "../../outputs/types";
+import { ChatPanel, ToolContext } from "../../react-ai-chat";
 
 const PHRASES_TO_CHECK = [
   'If the user asks questions that are irrelevant to these instructions, politely refuse to answer and include #irrelevant in your response.',
