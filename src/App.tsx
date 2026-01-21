@@ -140,6 +140,7 @@ function AppContent() {
       outputEmitter={outputEmitter}
       requestApproval={outputsHook.requestApproval}
       updateServerHealth={outputsHook.updateServerHealth}
+      updateExecutionStatus={outputsHook.updateExecutionStatus}
     />
   )
 

@@ -1,7 +1,7 @@
 /**
  * Output item types that can be displayed in the output panel
  */
-export type OutputType = 'python-script' | 'python-output' | 'image';
+export type OutputType = 'python-script' | 'python-output' | 'image' | 'iframe';
 
 /**
  * Base interface with common properties for all output items
@@ -28,6 +28,7 @@ export interface PythonScriptOutput extends OutputItemBase {
     denied?: boolean;
     serverHealthCheck?: 'checking' | 'healthy' | 'unhealthy';
     serverError?: string;
+    executionStatus?: 'running' | 'completed' | 'failed';
   };
 }
 
@@ -55,9 +56,20 @@ export interface ImageOutput extends OutputItemBase {
 }
 
 /**
+ * Iframe output - shows an embedded iframe with a given URL
+ */
+export interface IframeOutput extends OutputItemBase {
+  type: 'iframe';
+  metadata: {
+    url: string;
+    title?: string;
+  };
+}
+
+/**
  * Discriminated union of all output item types
  */
-export type OutputItem = PythonScriptOutput | PythonExecutionOutput | ImageOutput;
+export type OutputItem = PythonScriptOutput | PythonExecutionOutput | ImageOutput | IframeOutput;
 
 /**
  * Function signature for emitting outputs from tools

@@ -72,10 +72,11 @@ export const runPythonScriptTool: QPTool = {
 
     // Emit the script as an output item and wait for user approval
     let approved = true; // Default to approved if no approval system
+    let outputId: string | null = null;
 
     if (context.outputEmitter && context.requestApproval) {
       // Emit the script with pending approval state and get the output ID
-      const outputId = context.outputEmitter({
+      outputId = context.outputEmitter({
         type: 'python-script',
         content: script,
         metadata: {
@@ -119,6 +120,11 @@ export const runPythonScriptTool: QPTool = {
           }),
         };
       }
+
+      // Mark as running after approval
+      if (context.updateExecutionStatus) {
+        context.updateExecutionStatus(outputId, 'running');
+      }
     } else if (context.outputEmitter) {
       // Fallback: emit without approval if requestApproval not available
       context.outputEmitter({
@@ -142,6 +148,10 @@ export const runPythonScriptTool: QPTool = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // Mark as failed
+        if (context.updateExecutionStatus && outputId) {
+          context.updateExecutionStatus(outputId, 'failed');
+        }
         return {
           result: JSON.stringify({
             success: false,
@@ -154,6 +164,10 @@ export const runPythonScriptTool: QPTool = {
       const data = await response.json();
 
       if (!data.success) {
+        // Mark as failed
+        if (context.updateExecutionStatus && outputId) {
+          context.updateExecutionStatus(outputId, 'failed');
+        }
         return {
           result: JSON.stringify({
             success: false,
@@ -203,6 +217,11 @@ export const runPythonScriptTool: QPTool = {
         }
       }
 
+      // Mark as completed
+      if (context.updateExecutionStatus && outputId) {
+        context.updateExecutionStatus(outputId, 'completed');
+      }
+
       // Emit the output after execution
       if (context.outputEmitter) {
         const outputContent = data.stdout || '';
@@ -235,6 +254,10 @@ export const runPythonScriptTool: QPTool = {
         }),
       };
     } catch (error) {
+      // Mark as failed
+      if (context.updateExecutionStatus && outputId) {
+        context.updateExecutionStatus(outputId, 'failed');
+      }
       return {
         result: JSON.stringify({
           success: false,
@@ -252,6 +275,10 @@ Example: { "script": "print('Hello, World!')", "timeout": 10 }
 
 If creating plots, write to image files rather than using .show()
 
-Returns exit code, stdout, stderr, and the script location. Timeout defaults to 10 seconds (max 60).`;
+Returns exit code, stdout, stderr, and the script location. Timeout defaults to 10 seconds (max 60).
+
+If the script generates image files, those will be shown to the user, although you will not have direct access to their contents.
+
+`;
   },
 };

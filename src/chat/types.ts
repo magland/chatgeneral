@@ -84,6 +84,7 @@ export interface ToolExecutionContext {
   outputEmitter?: OutputEmitter;
   requestApproval?: (outputId: string) => Promise<boolean>;
   updateServerHealth?: (outputId: string, status: 'checking' | 'healthy' | 'unhealthy', error?: string) => void;
+  updateExecutionStatus?: (outputId: string, status: 'running' | 'completed' | 'failed') => void;
 }
 
 export type QPFunctionDescription = {

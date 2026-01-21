@@ -24,7 +24,7 @@ export const useOutputs = () => {
       timestamp: Date.now(),
     } as OutputItem;
 
-    setOutputs(prev => [newOutput, ...prev]);
+    setOutputs(prev => [...prev, newOutput]);
     return newOutput.id;
   }, []);
 
@@ -99,6 +99,24 @@ export const useOutputs = () => {
             ...o.metadata,
             serverHealthCheck: status,
             serverError: error,
+          }
+        };
+      }
+      return o;
+    }));
+  }, []);
+
+  /**
+   * Update execution status for a script output
+   */
+  const updateExecutionStatus = useCallback((id: string, status: 'running' | 'completed' | 'failed') => {
+    setOutputs(prev => prev.map(o => {
+      if (o.id === id && o.type === 'python-script') {
+        return {
+          ...o,
+          metadata: {
+            ...o.metadata,
+            executionStatus: status,
           }
         };
       }
@@ -182,6 +200,7 @@ export const useOutputs = () => {
     approveScript,
     denyScript,
     updateServerHealth,
+    updateExecutionStatus,
     retryServerCheck,
     usePublicServer,
   };

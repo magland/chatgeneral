@@ -17,12 +17,13 @@ const PHRASES_TO_CHECK = [
 ];
 
 export function ChatGeneralChatPanel(
-  { instructions, instructionsLoading, outputEmitter, requestApproval, updateServerHealth }: {
+  { instructions, instructionsLoading, outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus }: {
     instructions: string | null;
     instructionsLoading: boolean;
     outputEmitter: OutputEmitter;
     requestApproval: (outputId: string) => Promise<boolean>;
     updateServerHealth: (outputId: string, status: 'checking' | 'healthy' | 'unhealthy', error?: string) => void;
+    updateExecutionStatus: (outputId: string, status: 'running' | 'completed' | 'failed') => void;
   }
 ) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,8 +74,9 @@ Available tools:
   const toolContext: ToolContext = useMemo(() => ({
     outputEmitter,
     requestApproval,
-    updateServerHealth
-  }), [outputEmitter, requestApproval, updateServerHealth]);
+    updateServerHealth,
+    updateExecutionStatus
+  }), [outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus]);
 
   // Handle model change
   const handleModelChange = useCallback((newModel: string) => {

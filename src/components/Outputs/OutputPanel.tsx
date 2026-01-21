@@ -25,10 +25,10 @@ export function OutputPanel({ outputsHook }: OutputPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevOutputsLengthRef = useRef<number>(0);
 
-  // Scroll to top when new outputs are added
+  // Scroll to bottom when new outputs are added
   useEffect(() => {
     if (outputs.length > prevOutputsLengthRef.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
     prevOutputsLengthRef.current = outputs.length;
   }, [outputs.length]);

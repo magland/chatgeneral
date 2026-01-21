@@ -8,6 +8,9 @@ import ImageIcon from '@mui/icons-material/Image';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudIcon from '@mui/icons-material/Cloud';
+import WebIcon from '@mui/icons-material/Web';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import HeightIcon from '@mui/icons-material/Height';
 import { OutputItem as OutputItemType } from '../../outputs/types';
 import { useState } from 'react';
 
@@ -22,6 +25,7 @@ interface OutputItemProps {
 
 export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerCheck, onUsePublicServer }: OutputItemProps) {
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
+  const [iframeExpanded, setIframeExpanded] = useState(false);
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -50,6 +54,12 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
           label: 'Image',
           icon: <ImageIcon fontSize="small" />,
           color: 'secondary' as const,
+        };
+      case 'iframe':
+        return {
+          label: 'Web Content',
+          icon: <WebIcon fontSize="small" />,
+          color: 'info' as const,
         };
       default:
         return {
@@ -137,6 +147,59 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
           >
             {output.metadata.relativePath}
           </Typography>
+        </Box>
+      ) : output.type === 'iframe' ? (
+        <Box>
+          {output.metadata.title && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 1 }}
+            >
+              {output.metadata.title}
+            </Typography>
+          )}
+          <Box
+            sx={{
+              backgroundColor: 'grey.50',
+              borderRadius: 1,
+              overflow: 'hidden',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <iframe
+              src={output.metadata.url}
+              style={{
+                width: '100%',
+                height: iframeExpanded ? '800px' : '500px',
+                border: 'none',
+                display: 'block',
+              }}
+              title={output.metadata.title || 'Embedded content'}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            />
+          </Box>
+          <Box sx={{ mt: 1, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            {!iframeExpanded && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<HeightIcon />}
+                onClick={() => setIframeExpanded(true)}
+              >
+                Expand Height
+              </Button>
+            )}
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<OpenInNewIcon />}
+              onClick={() => window.open(output.metadata.url, '_blank')}
+            >
+              Open in New Tab
+            </Button>
+          </Box>
         </Box>
       ) : (
         <Box
@@ -299,13 +362,42 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
 
       {/* Approval Status */}
       {output.type === 'python-script' && output.metadata?.approved && (
-        <Box sx={{ mt: 1 }}>
-          <Chip
-            label="Approved & Executed"
-            color="success"
-            size="small"
-            variant="outlined"
-          />
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {output.metadata.executionStatus === 'running' && (
+            <>
+              <CircularProgress size={16} />
+              <Chip
+                label="Running..."
+                color="info"
+                size="small"
+                variant="outlined"
+              />
+            </>
+          )}
+          {output.metadata.executionStatus === 'completed' && (
+            <Chip
+              label="Completed"
+              color="success"
+              size="small"
+              variant="outlined"
+            />
+          )}
+          {output.metadata.executionStatus === 'failed' && (
+            <Chip
+              label="Failed"
+              color="error"
+              size="small"
+              variant="outlined"
+            />
+          )}
+          {!output.metadata.executionStatus && (
+            <Chip
+              label="Approved"
+              color="success"
+              size="small"
+              variant="outlined"
+            />
+          )}
         </Box>
       )}
       {output.type === 'python-script' && output.metadata?.denied && (
