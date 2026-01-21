@@ -83,6 +83,20 @@ Available tools:
     setCurrentModel(newModel);
   }, []);
 
+  // Parse welcome message from instructions
+  const welcomeMessage = useMemo(() => {
+    if (!instructions) return null;
+    
+    const lines = instructions.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.toLowerCase().startsWith('welcome:')) {
+        return trimmed.substring(trimmed.indexOf(':') + 1).trim();
+      }
+    }
+    return null;
+  }, [instructions]);
+
   const emptyStateContent: ReactNode = (
     <Paper
       elevation={0}
@@ -94,8 +108,13 @@ Available tools:
     >
       <SmartToyIcon sx={{ fontSize: 48, mb: 2 }} />
       <Typography variant="h6" gutterBottom>
-        Welcome to ChatGeneral
+        Welcome!
       </Typography>
+      {welcomeMessage && (
+        <Typography variant="body1" sx={{ mt: 1, color: "text.secondary" }}>
+          {welcomeMessage}
+        </Typography>
+      )}
     </Paper>
   );
 

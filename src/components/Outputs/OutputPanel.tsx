@@ -135,9 +135,6 @@ export function OutputPanel({ outputsHook }: OutputPanelProps) {
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No Outputs Yet
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Run Python scripts or other commands to see outputs here
-            </Typography>
           </Paper>
         ) : (
           outputs.map((output) => (
