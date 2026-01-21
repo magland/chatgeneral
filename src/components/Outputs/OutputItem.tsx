@@ -13,6 +13,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import HeightIcon from '@mui/icons-material/Height';
 import { OutputItem as OutputItemType } from '../../outputs/types';
 import { useState } from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface OutputItemProps {
   output: OutputItemType;
@@ -200,6 +202,30 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
               Open in New Tab
             </Button>
           </Box>
+        </Box>
+      ) : output.type === 'python-script' ? (
+        <Box
+          sx={{
+            borderRadius: 1,
+            maxHeight: '400px',
+            overflow: 'auto',
+            '& pre': {
+              margin: 0,
+              borderRadius: 1,
+            },
+          }}
+        >
+          <SyntaxHighlighter
+            language="python"
+            style={vscDarkPlus}
+            customStyle={{
+              fontSize: '0.875rem',
+              margin: 0,
+              borderRadius: '4px',
+            }}
+          >
+            {output.content}
+          </SyntaxHighlighter>
         </Box>
       ) : (
         <Box
