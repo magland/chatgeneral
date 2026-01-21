@@ -289,6 +289,7 @@ const useChat = (options: UseChatOptions) => {
             },
           };
           ret.push(assistantMessage);
+          partialResponseLocal = [...ret];
           setPartialResponse([...ret]);
 
           // Execute tools
@@ -297,6 +298,7 @@ const useChat = (options: UseChatOptions) => {
             abortController.signal
           );
           ret.push(...toolResults);
+          partialResponseLocal = [...ret];
           setPartialResponse([...ret]);
 
           // Recurse to get assistant's response to tool results
@@ -309,6 +311,7 @@ const useChat = (options: UseChatOptions) => {
           }
 
           const onPartialResponse2 = (messages: ChatMessage[]) => {
+            partialResponseLocal = [...ret, ...messages];
             setPartialResponse([...ret, ...messages]);
           };
 
