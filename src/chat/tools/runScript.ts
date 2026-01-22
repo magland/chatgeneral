@@ -336,6 +336,10 @@ Examples:
 - Python: { "script": "print('Hello, World!')", "scriptType": "python", "timeout": 10 }
 - Shell: { "script": "#!/bin/bash\\necho 'Hello, World!'", "scriptType": "shell", "timeout": 10 }
 
+Do not create any potentially harmful scripts.
+
+If the user explicitly asks about a certain directory on their system, you can use that path in your scripts. Otherwise, you should stick to working in the temporary script directory.
+
 For Python scripts, if creating plots, write to image files rather than using .show()
 
 Returns exit code, stdout, stderr, and the script location. Timeout defaults to 10 seconds (max 60).
