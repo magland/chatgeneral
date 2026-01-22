@@ -172,7 +172,14 @@ function AppContent() {
       {/* App Bar */}
       <AppBar position="static" elevation={1}>
         <Toolbar variant="dense">
-          <Box component="img" src={logoIcon} alt="Logo" sx={{ height: 24, mr: 1 }} />
+          <IconButton
+            color="inherit"
+            onClick={() => handleInstructions(null)}
+            size="small"
+            sx={{ p: 0.5, mr: 1 }}
+          >
+            <Box component="img" src={logoIcon} alt="Logo" sx={{ height: 24 }} />
+          </IconButton>
           <IconButton
             color="inherit"
             onClick={() => setAboutDialogOpen(true)}
@@ -181,17 +188,22 @@ function AppContent() {
           >
             <InfoIcon />
           </IconButton>
-          {/* Show Edit button when using local instructions */}
+          {/* Show local instructions name and Edit button when using local instructions */}
           {isLocalInstructions && (
-            <Button
-              color="inherit"
-              startIcon={<EditIcon />}
-              onClick={() => setEditInstructionsOpen(true)}
-              size="small"
-              sx={{ ml: 'auto' }}
-            >
-              Edit Instructions
-            </Button>
+            <>
+              <Typography variant="body2" sx={{ ml: 2, opacity: 0.9 }}>
+                Local: {localInstructionsName}
+              </Typography>
+              <Button
+                color="inherit"
+                startIcon={<EditIcon />}
+                onClick={() => setEditInstructionsOpen(true)}
+                size="small"
+                sx={{ ml: 'auto' }}
+              >
+                Edit Instructions
+              </Button>
+            </>
           )}
         </Toolbar>
       </AppBar>
