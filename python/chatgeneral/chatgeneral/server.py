@@ -7,9 +7,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 API_KEY = "z9-local-file-access-key-2026"
@@ -48,6 +48,7 @@ class RunScriptResponse(BaseModel):
     timeout: bool = False
     message: Optional[str] = None
     createdFiles: Optional[list[str]] = None
+    createdDirectories: Optional[list[str]] = None
     error: Optional[str] = None
 
 
@@ -107,6 +108,14 @@ def get_files_in_directory(directory: Path) -> set[str]:
         return set()
 
 
+def get_directories_in_directory(directory: Path) -> set[str]:
+    """Get all directories in a directory (non-recursive)"""
+    try:
+        return {f.name for f in directory.iterdir() if f.is_dir()}
+    except Exception:
+        return set()
+
+
 @app.post("/api/run-python-script", response_model=RunScriptResponse)
 async def run_python_script(request: RunScriptRequest):
     """Execute a Python script in a timestamped temporary directory"""
@@ -142,17 +151,20 @@ async def run_python_script(request: RunScriptRequest):
         # Write script to file
         script_path.write_text(request.script, encoding="utf-8")
 
-        # Get files before execution
+        # Get files and directories before execution
         files_before = get_files_in_directory(script_dir)
+        directories_before = get_directories_in_directory(script_dir)
 
         # Execute script
         exit_code, stdout, stderr, timed_out = await run_script_with_timeout(
             script_path, request.timeout, script_dir
         )
 
-        # Get files after execution and determine what was created
+        # Get files and directories after execution and determine what was created
         files_after = get_files_in_directory(script_dir)
+        directories_after = get_directories_in_directory(script_dir)
         created_files = sorted(files_after - files_before)
+        created_directories = sorted(directories_after - directories_before)
 
         # Build response message
         if timed_out:
@@ -172,6 +184,7 @@ async def run_python_script(request: RunScriptRequest):
             timeout=timed_out,
             message=message,
             createdFiles=created_files,
+            createdDirectories=created_directories,
         )
 
     except Exception as e:
@@ -180,9 +193,9 @@ async def run_python_script(request: RunScriptRequest):
         )
 
 
-@app.get("/files/{file_path:path}")
-async def serve_file(file_path: str):
-    """Serve files from the server's working directory"""
+@app.head("/files/{file_path:path}")
+async def head_file(file_path: str):
+    """HEAD request for files - check if file exists without downloading"""
     
     # Validate path is safe (within working directory)
     if not is_safe_path(SERVER_WORKING_DIR, file_path):
@@ -200,6 +213,66 @@ async def serve_file(file_path: str):
     if not full_path.is_file():
         raise HTTPException(status_code=400, detail="Path is not a file")
 
+    # Get file size for Content-Length header
+    file_size = full_path.stat().st_size
+    
+    return Response(
+        status_code=200,
+        headers={
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
+        }
+    )
+
+
+@app.get("/files/{file_path:path}")
+async def serve_file(file_path: str, request: Request):
+    """Serve files from the server's working directory with range request support"""
+    
+    # Validate path is safe (within working directory)
+    if not is_safe_path(SERVER_WORKING_DIR, file_path):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid path: must be within server working directory",
+        )
+
+    full_path = SERVER_WORKING_DIR / file_path
+
+    # Check if file exists
+    if not full_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if not full_path.is_file():
+        raise HTTPException(status_code=400, detail="Path is not a file")
+
+    # Handle range requests for better streaming/partial content support
+    range_header = request.headers.get("Range")
+    if range_header:
+        # Parse range header (e.g., "bytes=0-1023")
+        try:
+            range_match = range_header.replace("bytes=", "").split("-")
+            start = int(range_match[0]) if range_match[0] else 0
+            file_size = full_path.stat().st_size
+            end = int(range_match[1]) if range_match[1] else file_size - 1
+            
+            # Read the requested byte range
+            with open(full_path, "rb") as f:
+                f.seek(start)
+                content = f.read(end - start + 1)
+            
+            return Response(
+                content=content,
+                status_code=206,  # Partial Content
+                headers={
+                    "Content-Range": f"bytes {start}-{end}/{file_size}",
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(len(content)),
+                }
+            )
+        except (ValueError, IndexError):
+            # Invalid range, fall back to full file
+            pass
+    
     return FileResponse(full_path)
 
 

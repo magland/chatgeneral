@@ -217,6 +217,44 @@ export const runPythonScriptTool: QPTool = {
         }
       }
 
+      // Emit iframe outputs for created .figpack directories
+      if (context.outputEmitter && data.createdDirectories && Array.isArray(data.createdDirectories)) {
+        for (const dirname of data.createdDirectories) {
+          if (dirname.endsWith('.figpack')) {
+            try {
+              // Construct the URL to the index.html file in the .figpack directory
+              const indexUrl = `${getServerUrl()}/files/${data.scriptDir}/${dirname}/index.html`;
+              
+              // Verify that index.html exists before creating the iframe
+              try {
+                const checkResponse = await fetch(indexUrl, { method: 'HEAD' });
+                if (!checkResponse.ok) {
+                  console.warn(`index.html not found in ${dirname}, skipping iframe output`);
+                  continue;
+                }
+              } catch (error) {
+                console.warn(`Failed to verify index.html in ${dirname}:`, error);
+                continue;
+              }
+              
+              // Emit the iframe output
+              // Add a timestamp parameter to prevent caching issues
+              const urlWithCacheBuster = `${indexUrl}?t=${Date.now()}`;
+              context.outputEmitter({
+                type: 'iframe',
+                content: '',
+                metadata: {
+                  url: urlWithCacheBuster,
+                  title: dirname,
+                },
+              });
+            } catch (error) {
+              console.error(`Failed to create iframe output for ${dirname}:`, error);
+            }
+          }
+        }
+      }
+
       // Mark as completed
       if (context.updateExecutionStatus && outputId) {
         context.updateExecutionStatus(outputId, 'completed');
@@ -278,6 +316,8 @@ If creating plots, write to image files rather than using .show()
 Returns exit code, stdout, stderr, and the script location. Timeout defaults to 10 seconds (max 60).
 
 If the script generates image files, those will be shown to the user, although you will not have direct access to their contents.
+
+If the script creates a directory with a name ending in .figpack (e.g., example.figpack) containing an index.html file, it will be displayed to the user as an embedded iframe.
 
 `;
   },

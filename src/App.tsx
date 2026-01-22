@@ -1,5 +1,6 @@
 import InfoIcon from '@mui/icons-material/Info';
-import { AppBar, Box, createTheme, CssBaseline, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import { AppBar, Box, createTheme, CssBaseline, IconButton, ThemeProvider, Toolbar, Typography, Button } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import AboutDialog from './components/About/AboutDialog';
 import { ChatGeneralChatPanel } from './components/Chat/ChatPanel';
@@ -8,6 +9,7 @@ import { WelcomePage } from './components/Welcome/WelcomePage';
 import logoIcon from '/logo-white.svg';
 import { useOutputs } from './outputs/useOutputs';
 import { OutputPanel } from './components/Outputs/OutputPanel';
+import { EditLocalInstructionsDialog } from './components/Instructions/EditLocalInstructionsDialog';
 
 // Create a custom theme with better colors for diffs
 const theme = createTheme({
@@ -78,10 +80,11 @@ function AppContent() {
   const outputEmitter = outputsHook.createEmitter();
 
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  const [editInstructionsOpen, setEditInstructionsOpen] = useState(false);
 
   const instructionsUrl = useInstructionsUrlFromQuery();
 
-  const { instructions, instructionsLoading } = useInstructions(instructionsUrl)
+  const { instructions, instructionsLoading, reloadInstructions } = useInstructions(instructionsUrl);
 
   const handleInstructions = useCallback((url: string | null) => {
     // set the query parameter without reloading the page
@@ -94,6 +97,20 @@ function AppContent() {
     // Trigger a popstate event to update the component
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
+
+  const handleSaveLocalInstructions = useCallback((content: string) => {
+    if (instructionsUrl?.startsWith('local:')) {
+      const name = instructionsUrl.substring(6);
+      const localKey = `local_instructions_${name}`;
+      localStorage.setItem(localKey, content);
+      // Trigger reload of instructions
+      reloadInstructions();
+    }
+  }, [instructionsUrl, reloadInstructions]);
+
+  // Check if we're using local instructions
+  const isLocalInstructions = instructionsUrl?.startsWith('local:') || false;
+  const localInstructionsName = isLocalInstructions ? instructionsUrl!.substring(6) : '';
 
   // Show welcome page if no instructions URL is specified
   const showWelcome = !instructionsUrl;
@@ -164,6 +181,18 @@ function AppContent() {
           >
             <InfoIcon />
           </IconButton>
+          {/* Show Edit button when using local instructions */}
+          {isLocalInstructions && (
+            <Button
+              color="inherit"
+              startIcon={<EditIcon />}
+              onClick={() => setEditInstructionsOpen(true)}
+              size="small"
+              sx={{ ml: 'auto' }}
+            >
+              Edit Instructions
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 
@@ -183,6 +212,16 @@ function AppContent() {
         open={aboutDialogOpen}
         onClose={() => setAboutDialogOpen(false)}
       />
+
+      {/* Edit Local Instructions Dialog */}
+      {isLocalInstructions && (
+        <EditLocalInstructionsDialog
+          open={editInstructionsOpen}
+          onClose={() => setEditInstructionsOpen(false)}
+          instructionsName={localInstructionsName}
+          onSave={handleSaveLocalInstructions}
+        />
+      )}
     </Box>
   );
 }
@@ -240,10 +279,29 @@ const setCachedInstructions = (url: string, text: string): void => {
 const useInstructions = (url: string | null) => {
   const [instructions, setInstructions] = useState<string | null>(null);
   const [instructionsLoading, setInstructionsLoading] = useState<boolean>(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     if (!url) {
       setInstructions(null);
+      return;
+    }
+
+    // Check if this is a local instructions reference
+    if (url.startsWith('local:')) {
+      const name = url.substring(6); // Remove 'local:' prefix
+      const localKey = `local_instructions_${name}`;
+      const localInstructions = localStorage.getItem(localKey);
+      
+      if (localInstructions) {
+        console.info('Using local instructions:', name);
+        console.info(localInstructions);
+        setInstructions(localInstructions);
+      } else {
+        console.info('No local instructions found for:', name);
+        setInstructions(`No local instructions found for "${name}". Click "Edit Instructions" to create them.`);
+      }
+      setInstructionsLoading(false);
       return;
     }
 
@@ -290,9 +348,13 @@ const useInstructions = (url: string | null) => {
     return () => {
       isCancelled = true;
     };
-  }, [url]);
+  }, [url, reloadTrigger]);
 
-  return { instructions, instructionsLoading };
+  const reloadInstructions = useCallback(() => {
+    setReloadTrigger(prev => prev + 1);
+  }, []);
+
+  return { instructions, instructionsLoading, reloadInstructions };
 };
 
 const filterInstructionsUrl = (url: string): string => {
