@@ -317,7 +317,7 @@ Returns exit code, stdout, stderr, and the script location. Timeout defaults to 
 
 If the script generates image files, those will be shown to the user, although you will not have direct access to their contents.
 
-If the script creates a directory with a name ending in .figpack (e.g., example.figpack) containing an index.html file, it will be displayed to the user as an embedded iframe.
+If the script creates a directory with a name ending in .figpack (e.g., example.figpack) containing an index.html file, it will be displayed to the user as an embedded iframe. You do not need to create the iframe yourself.
 
 `;
   },
