@@ -72,7 +72,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
     }
   };
 
-  const typeInfo = getTypeInfo(output.type, output.metadata.scriptType);
+  const typeInfo = getTypeInfo(output.type, output.type === 'script' ? output.metadata?.scriptType : undefined);
 
   return (
     <Paper
