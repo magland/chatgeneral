@@ -62,7 +62,7 @@ export const useOutputs = () => {
     }
     // Update output state
     setOutputs(prev => prev.map(o => {
-      if (o.id === id && o.type === 'python-script') {
+      if (o.id === id && (o.type === 'script')) {
         return { ...o, metadata: { ...o.metadata, pendingApproval: false, approved: true }};
       }
       return o;
@@ -80,7 +80,7 @@ export const useOutputs = () => {
     }
     // Update output state
     setOutputs(prev => prev.map(o => {
-      if (o.id === id && o.type === 'python-script') {
+      if (o.id === id && (o.type === 'script')) {
         return { ...o, metadata: { ...o.metadata, pendingApproval: false, denied: true }};
       }
       return o;
@@ -92,7 +92,7 @@ export const useOutputs = () => {
    */
   const updateServerHealth = useCallback((id: string, status: 'checking' | 'healthy' | 'unhealthy', error?: string) => {
     setOutputs(prev => prev.map(o => {
-      if (o.id === id && o.type === 'python-script') {
+      if (o.id === id && (o.type === 'script')) {
         return {
           ...o,
           metadata: {
@@ -111,7 +111,7 @@ export const useOutputs = () => {
    */
   const updateExecutionStatus = useCallback((id: string, status: 'running' | 'completed' | 'failed') => {
     setOutputs(prev => prev.map(o => {
-      if (o.id === id && o.type === 'python-script') {
+      if (o.id === id && (o.type === 'script')) {
         return {
           ...o,
           metadata: {

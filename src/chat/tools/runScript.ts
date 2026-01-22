@@ -28,20 +28,26 @@ function isImageFile(filename: string): boolean {
 }
 
 /**
- * A tool that allows the AI to run Python scripts via the local file server.
+ * A tool that allows the AI to run scripts (Python or shell) via the local file server.
  */
-export const runPythonScriptTool: QPTool = {
+export const runScriptTool: QPTool = {
   toolFunction: {
-    name: "run_python_script",
+    name: "run_script",
     description:
-      "Execute a Python script on the local system. The script will be written to a temporary directory with a timestamp and executed with a configurable timeout. Use this to perform data analysis, computations, or any Python-based tasks.",
+      "Execute a script (Python or shell) on the local system. The script will be written to a temporary directory with a timestamp and executed with a configurable timeout. Use this to perform data analysis, computations, system operations, or any script-based tasks.",
     parameters: {
       type: "object",
       properties: {
         script: {
           type: "string",
           description:
-            "The complete Python script to execute. Include all necessary imports and code. The script will be saved as 'script.py' in a timestamped temporary directory.",
+            "The complete script to execute. Include all necessary imports and code. The script will be saved in a timestamped temporary directory.",
+        },
+        scriptType: {
+          type: "string",
+          enum: ["python", "shell"],
+          description:
+            "Type of script to execute. 'python' for Python scripts (.py) or 'shell' for shell scripts (.sh).",
         },
         timeout: {
           type: "number",
@@ -49,16 +55,17 @@ export const runPythonScriptTool: QPTool = {
             "Maximum execution time in seconds (default: 10, max: 60). The script will be terminated if it runs longer than this.",
         },
       },
-      required: ["script", "timeout"],
+      required: ["script", "scriptType", "timeout"],
       additionalProperties: false,
     },
   },
 
   execute: async (
-    params: { script: string; timeout?: number },
+    params: { script: string; scriptType: string; timeout?: number },
     context: ToolExecutionContext
   ) => {
     const { script, timeout = 10 } = params;
+    const scriptType = params.scriptType as 'python' | 'shell';
 
     // Validate script
     if (!script) {
@@ -70,6 +77,16 @@ export const runPythonScriptTool: QPTool = {
       };
     }
 
+    // Validate script type
+    if (!["python", "shell"].includes(scriptType)) {
+      return {
+        result: JSON.stringify({
+          success: false,
+          error: "scriptType must be 'python' or 'shell'",
+        }),
+      };
+    }
+
     // Emit the script as an output item and wait for user approval
     let approved = true; // Default to approved if no approval system
     let outputId: string | null = null;
@@ -77,11 +94,12 @@ export const runPythonScriptTool: QPTool = {
     if (context.outputEmitter && context.requestApproval) {
       // Emit the script with pending approval state and get the output ID
       outputId = context.outputEmitter({
-        type: 'python-script',
+        type: 'script',
         content: script,
         metadata: {
           pendingApproval: true,
           serverHealthCheck: 'checking',
+          scriptType,
         },
       });
 
@@ -128,19 +146,23 @@ export const runPythonScriptTool: QPTool = {
     } else if (context.outputEmitter) {
       // Fallback: emit without approval if requestApproval not available
       context.outputEmitter({
-        type: 'python-script',
+        type: 'script',
         content: script,
+        metadata: {
+          scriptType,
+        },
       });
     }
 
     try {
-      const response = await fetch(`${getServerUrl()}/api/run-python-script`, {
+      const response = await fetch(`${getServerUrl()}/api/run-script`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           script,
+          scriptType,
           timeout,
           apiKey: API_KEY,
         }),
@@ -156,7 +178,7 @@ export const runPythonScriptTool: QPTool = {
           result: JSON.stringify({
             success: false,
             error: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-            hint: "Make sure the local file server is running on port 3339. Start it with: cd server && npm start",
+            hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server",
           }),
         };
       }
@@ -269,12 +291,13 @@ export const runPythonScriptTool: QPTool = {
           : outputContent;
 
         context.outputEmitter({
-          type: 'python-output',
+          type: 'script-execution-output',
           content: combinedOutput || '(no output)',
           metadata: {
             exitCode: data.exitCode,
             scriptPath: data.scriptPath,
             stderr: data.stderr,
+            scriptType,
           },
         });
       }
@@ -300,18 +323,20 @@ export const runPythonScriptTool: QPTool = {
         result: JSON.stringify({
           success: false,
           error: `Failed to connect to file server: ${error instanceof Error ? error.message : "Unknown error"}`,
-          hint: "Make sure the local file server is running on port 3339. Start it with: cd server && npm start",
+          hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server",
         }),
       };
     }
   },
 
   getDetailedDescription: () => {
-    return `Execute a Python script with a configurable timeout. The script is saved to a timestamped temporary directory.
+    return `Execute a script (Python or shell) with a configurable timeout. The script is saved to a timestamped temporary directory.
 
-Example: { "script": "print('Hello, World!')", "timeout": 10 }
+Examples:
+- Python: { "script": "print('Hello, World!')", "scriptType": "python", "timeout": 10 }
+- Shell: { "script": "#!/bin/bash\\necho 'Hello, World!'", "scriptType": "shell", "timeout": 10 }
 
-If creating plots, write to image files rather than using .show()
+For Python scripts, if creating plots, write to image files rather than using .show()
 
 Returns exit code, stdout, stderr, and the script location. Timeout defaults to 10 seconds (max 60).
 

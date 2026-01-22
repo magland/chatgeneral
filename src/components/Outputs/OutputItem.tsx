@@ -37,17 +37,17 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
     });
   };
 
-  const getTypeInfo = (type: string) => {
+  const getTypeInfo = (type: string, scriptType?: string) => {
     switch (type) {
-      case 'python-script':
+      case 'script':
         return {
-          label: 'Python Script',
+          label: scriptType === 'python' ? 'Python Script' : 'Shell Script',
           icon: <CodeIcon fontSize="small" />,
           color: 'primary' as const,
         };
-      case 'python-output':
+      case 'script-execution-output':
         return {
-          label: 'Output',
+          label: scriptType === 'python' ? 'Python Output' : 'Shell Output',
           icon: <TerminalIcon fontSize="small" />,
           color: 'success' as const,
         };
@@ -72,7 +72,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
     }
   };
 
-  const typeInfo = getTypeInfo(output.type);
+  const typeInfo = getTypeInfo(output.type, output.metadata.scriptType);
 
   return (
     <Paper
@@ -203,7 +203,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
             </Button>
           </Box>
         </Box>
-      ) : output.type === 'python-script' ? (
+      ) : output.type === 'script' ? (
         <Box
           sx={{
             borderRadius: 1,
@@ -216,7 +216,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
           }}
         >
           <SyntaxHighlighter
-            language="python"
+            language={output.metadata?.scriptType === 'python' ? 'python' : 'bash'}
             style={vscDarkPlus}
             customStyle={{
               fontSize: '0.875rem',
@@ -246,13 +246,13 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
       )}
 
       {/* Server Health Check Status */}
-      {output.type === 'python-script' &&
+      {(output.type === 'script') &&
        output.metadata?.pendingApproval &&
        output.metadata?.serverHealthCheck && (
         <Box sx={{ mt: 2 }}>
           {output.metadata.serverHealthCheck === 'checking' && (
             <Alert severity="info" icon={<CircularProgress size={20} />}>
-              Checking if Python script server is running...
+              Checking if script server is running...
             </Alert>
           )}
           
@@ -271,7 +271,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
               }
             >
               <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Python Script Server Not Running
+                Script Server Not Running
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 The server must be running before scripts can be executed.
@@ -337,7 +337,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
       )}
 
       {/* Approval Buttons */}
-      {output.type === 'python-script' && output.metadata?.pendingApproval && (
+      {(output.type === 'script') && output.metadata?.pendingApproval && (
         <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           {output.metadata.serverHealthCheck === 'unhealthy' && (
             <>
@@ -387,7 +387,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
       )}
 
       {/* Approval Status */}
-      {output.type === 'python-script' && output.metadata?.approved && (
+      {(output.type === 'script') && output.metadata?.approved && (
         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
           {output.metadata.executionStatus === 'running' && (
             <>
@@ -426,7 +426,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
           )}
         </Box>
       )}
-      {output.type === 'python-script' && output.metadata?.denied && (
+      {(output.type === 'script') && output.metadata?.denied && (
         <Box sx={{ mt: 1 }}>
           <Chip
             label="Denied"
@@ -438,7 +438,7 @@ export function OutputItem({ output, onDelete, onApprove, onDeny, onRetryServerC
       )}
 
       {/* Metadata */}
-      {output.type === 'python-output' && (
+      {(output.type === 'script-execution-output') && (
         <Box sx={{ mt: 1 }}>
           <Typography variant="caption" color="text.secondary">
             Exit code: {output.metadata.exitCode}

@@ -1,7 +1,7 @@
 /**
  * Output item types that can be displayed in the output panel
  */
-export type OutputType = 'python-script' | 'python-output' | 'image' | 'iframe';
+export type OutputType = 'script' | 'script-output' | 'image' | 'iframe';
 
 /**
  * Base interface with common properties for all output items
@@ -18,10 +18,10 @@ interface OutputItemBase {
 }
 
 /**
- * Python script output - shows the script that will be/was executed
+ * Script output - shows the script that will be/was executed
  */
-export interface PythonScriptOutput extends OutputItemBase {
-  type: 'python-script';
+export interface ScriptOutput extends OutputItemBase {
+  type: 'script';
   metadata?: {
     pendingApproval?: boolean;
     approved?: boolean;
@@ -29,18 +29,20 @@ export interface PythonScriptOutput extends OutputItemBase {
     serverHealthCheck?: 'checking' | 'healthy' | 'unhealthy';
     serverError?: string;
     executionStatus?: 'running' | 'completed' | 'failed';
+    scriptType?: 'python' | 'shell';
   };
 }
 
 /**
- * Python execution output - shows the result of running a script
+ * Script execution output - shows the result of running a script
  */
-export interface PythonExecutionOutput extends OutputItemBase {
-  type: 'python-output';
+export interface ScriptExecutionOutput extends OutputItemBase {
+  type: 'script-execution-output';
   metadata: {
     exitCode: number;
     scriptPath: string;
     stderr?: string;
+    scriptType?: 'python' | 'shell';
   };
 }
 
@@ -69,7 +71,7 @@ export interface IframeOutput extends OutputItemBase {
 /**
  * Discriminated union of all output item types
  */
-export type OutputItem = PythonScriptOutput | PythonExecutionOutput | ImageOutput | IframeOutput;
+export type OutputItem = ScriptOutput | ScriptExecutionOutput | ImageOutput | IframeOutput;
 
 /**
  * Function signature for emitting outputs from tools

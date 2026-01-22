@@ -43,7 +43,6 @@ def main():
         print(f"  Working directory: {working_dir}")
         print(f"  Host: {args.host}")
         print(f"  Port: {args.port}")
-        print(f"  API endpoint: http://{args.host}:{args.port}/api/run-python-script")
         print()
         
         from .server import run_server

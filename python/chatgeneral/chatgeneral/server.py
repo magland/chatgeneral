@@ -34,6 +34,7 @@ SERVER_WORKING_DIR: Optional[Path] = None
 
 class RunScriptRequest(BaseModel):
     script: str
+    scriptType: str = "python"  # "python" or "shell"
     timeout: int = 10
     apiKey: str
 
@@ -68,16 +69,22 @@ def is_safe_path(base_dir: Path, requested_path: str) -> bool:
 
 
 async def run_script_with_timeout(
-    script_path: Path, timeout_seconds: int, cwd: Path
+    script_path: Path, timeout_seconds: int, cwd: Path, script_type: str = "python"
 ) -> tuple[int, str, str, bool]:
     """
-    Execute a Python script with a timeout.
+    Execute a script with a timeout.
     Returns: (exit_code, stdout, stderr, timed_out)
     """
     try:
+        if script_type == "python":
+            cmd = [sys.executable, str(script_path)]
+        elif script_type == "shell":
+            cmd = ["/bin/bash", str(script_path)]
+        else:
+            return -1, "", f"Unsupported script type: {script_type}", False
+        
         process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            str(script_path),
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(cwd),
@@ -116,13 +123,19 @@ def get_directories_in_directory(directory: Path) -> set[str]:
         return set()
 
 
-@app.post("/api/run-python-script", response_model=RunScriptResponse)
-async def run_python_script(request: RunScriptRequest):
-    """Execute a Python script in a timestamped temporary directory"""
+@app.post("/api/run-script", response_model=RunScriptResponse)
+async def run_script(request: RunScriptRequest):
+    """Execute a script (Python or shell) in a timestamped temporary directory"""
     
     # Validate API key
     if not validate_api_key(request.apiKey):
         raise HTTPException(status_code=401, detail="Invalid API key")
+
+    # Validate script type
+    if request.scriptType not in ["python", "shell"]:
+        return RunScriptResponse(
+            success=False, error="scriptType must be 'python' or 'shell'"
+        )
 
     # Validate timeout
     if request.timeout < 1 or request.timeout > 60:
@@ -142,14 +155,19 @@ async def run_python_script(request: RunScriptRequest):
     script_dir = tmp_dir / timestamp
     script_dir.mkdir(exist_ok=True)
 
-    # Get relative paths
+    # Get relative paths and set script extension based on type
     script_dir_rel = script_dir.relative_to(SERVER_WORKING_DIR)
-    script_path = script_dir / "script.py"
+    script_filename = "script.py" if request.scriptType == "python" else "script.sh"
+    script_path = script_dir / script_filename
     script_path_rel = script_path.relative_to(SERVER_WORKING_DIR)
 
     try:
         # Write script to file
         script_path.write_text(request.script, encoding="utf-8")
+        
+        # Make shell scripts executable
+        if request.scriptType == "shell":
+            script_path.chmod(0o755)
 
         # Get files and directories before execution
         files_before = get_files_in_directory(script_dir)
@@ -157,7 +175,7 @@ async def run_python_script(request: RunScriptRequest):
 
         # Execute script
         exit_code, stdout, stderr, timed_out = await run_script_with_timeout(
-            script_path, request.timeout, script_dir
+            script_path, request.timeout, script_dir, request.scriptType
         )
 
         # Get files and directories after execution and determine what was created

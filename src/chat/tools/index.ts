@@ -1,7 +1,7 @@
 import { Tool, ToolContext } from "../../react-ai-chat";
 import type { ToolExecutionContext } from "../types";
 import { fetchUrlTool } from "./fetchUrl";
-import { runPythonScriptTool } from "./runPythonScript";
+import { runScriptTool } from "./runScript";
 import { showIframeTool } from "./showIframe";
 
 export const fetchUrl: Tool = {
@@ -25,6 +25,6 @@ export const showIframe: Tool = {
  */
 export const tools: Tool[] = [
   fetchUrl,
-  runPythonScriptTool,
+  runScriptTool,
   showIframe,
 ];
