@@ -40,16 +40,8 @@ export const AVAILABLE_MODELS = [
     },
   },
   {
-    model: "anthropic/claude-3.5-sonnet",
-    label: "claude-3.5-sonnet",
-    cost: {
-      prompt: 3,
-      completion: 15,
-    },
-  },
-  {
-    model: "anthropic/claude-sonnet-4",
-    label: "claude-sonnet-4",
+    model: "anthropic/claude-4.5-sonnet",
+    label: "claude-4.5-sonnet",
     cost: {
       prompt: 3,
       completion: 15,
