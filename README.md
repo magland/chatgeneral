@@ -5,6 +5,7 @@ A customizable AI chat interface for prototyping domain-specific AI assistants. 
 ## Features
 
 - **Custom Instructions**: Load instructions from URLs or create local instruction sets to define specialized AI assistants
+- **Parameterized Instructions**: Create reusable instruction templates with URL query parameters
 - **AI-Driven Script Execution**: The AI assistant can write and submit Python/shell scripts for execution (you approve each script for security)
 - **Rich Output Display**: Automatic rendering of generated images, interactive visualizations (.figpack), and script results
 - **Multi-Model Support**: Choose from multiple AI models via OpenRouter (GPT, Claude, Gemini, etc.)
@@ -81,6 +82,26 @@ https://magland.github.io/chatgeneral/?instructions=https://github.com/user/repo
 2. Enter a name for your instruction set
 3. Edit the instructions in the dialog
 4. Instructions are stored in browser localStorage
+
+### Parameterized Instructions
+
+Create reusable instruction templates with URL query parameters.
+
+**Define parameters** in your instruction file:
+```markdown
+parameters: dataset_name, analysis_type
+
+You are a ${analysis_type} assistant for the ${dataset_name} dataset.
+
+Welcome: Ready to analyze ${dataset_name}!
+```
+
+**Use with URL parameters**:
+```
+?instructions=https://example.com/instructions.md&dataset_name=iris&analysis_type=statistical
+```
+
+Parameters work with both remote and local instructions. Missing required parameters show an error.
 
 ## API Keys
 

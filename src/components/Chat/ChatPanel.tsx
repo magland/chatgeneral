@@ -136,7 +136,8 @@ Available tools:
     </Paper>
   );
 
-  const isLoading = false;
+  // Show loading only when loading and no error
+  const showLoading = instructionsLoading && !instructionsError;
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -183,7 +184,7 @@ Available tools:
           enableCompression={true}
           enableExport={true}
           enableModelSelection={true}
-          isLoading={!!instructionsError || isLoading}
+          isLoading={showLoading}
           onModelChange={handleModelChange}
         />
       </Box>
