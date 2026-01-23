@@ -27,7 +27,8 @@ export type ChatAction =
       type: "replace_with_summary";
       message: ChatMessage;
       preservedUsage: Chat["totalUsage"];
-    };
+    }
+  | { type: "load_chat"; chat: Chat };
 
 const createEmptyChat = (model: string): Chat => ({
   messages: [],
@@ -76,6 +77,8 @@ const chatReducer = (state: Chat, action: ChatAction): Chat => {
         messages: [action.message],
         totalUsage: action.preservedUsage,
       };
+    case "load_chat":
+      return action.chat;
     default:
       return state;
   }
@@ -689,6 +692,16 @@ ${plainTextConversation}`;
     return [];
   }, [chat.messages, systemPrompt]);
 
+  const loadChat = useCallback((loadedChat: Chat) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setChat(loadedChat);
+    setError(null);
+    setPartialResponse(null);
+    setResponding(false);
+  }, []);
+
   return {
     chat,
     submitUserMessage,
@@ -702,6 +715,7 @@ ${plainTextConversation}`;
     revertToMessage,
     compressConversation,
     currentSuggestions,
+    loadChat,
   };
 };
 

@@ -17,6 +17,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import StopIcon from "@mui/icons-material/Stop";
 import DownloadIcon from "@mui/icons-material/Download";
+import UploadIcon from "@mui/icons-material/Upload";
 import CompressIcon from "@mui/icons-material/Compress";
 import ChatInput from "./ChatInput";
 import MessageItem from "./MessageItem";
@@ -60,6 +61,7 @@ export function ChatPanel({
     revertToMessage,
     compressConversation,
     currentSuggestions,
+    loadChat,
   } = useChat({
     onCompletion,
     tools,
@@ -74,6 +76,7 @@ export function ChatPanel({
   const [settingsDialogOpen, setSettingsDialogOpen] = useState<boolean>(false);
   const [errorExpanded, setErrorExpanded] = useState<boolean>(false);
   const conversationRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Compression threshold (number of messages before suggesting compression)
   const compressionThreshold = 35;
@@ -151,54 +154,64 @@ export function ChatPanel({
   );
 
   const handleDownloadChat = useCallback(() => {
-    const lines: string[] = [];
-    lines.push(`Chat Export`);
-    lines.push(`Model: ${chat.model}`);
-    lines.push(`Date: ${new Date().toISOString()}`);
-    lines.push(`${"=".repeat(50)}\n`);
+    const chatExport = {
+      version: "1.0",
+      exportDate: new Date().toISOString(),
+      chat: {
+        model: chat.model,
+        messages: chat.messages,
+        totalUsage: chat.totalUsage,
+      },
+    };
 
-    for (const msg of chat.messages) {
-      if (msg.role === "user") {
-        lines.push(`USER:`);
-        lines.push(
-          typeof msg.content === "string"
-            ? msg.content
-            : JSON.stringify(msg.content)
-        );
-        lines.push("");
-      } else if (msg.role === "assistant") {
-        lines.push(`ASSISTANT:`);
-        if (msg.content) {
-          lines.push(
-            typeof msg.content === "string"
-              ? msg.content
-              : JSON.stringify(msg.content)
-          );
-        }
-        if (msg.tool_calls) {
-          for (const tc of msg.tool_calls) {
-            lines.push(`[Tool Call: ${tc.function.name}]`);
-            lines.push(tc.function.arguments);
-          }
-        }
-        lines.push("");
-      } else if (msg.role === "tool") {
-        lines.push(`TOOL RESULT (${msg.name || msg.tool_call_id}):`);
-        lines.push(msg.content);
-        lines.push("");
-      }
-    }
-
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const blob = new Blob([JSON.stringify(chatExport, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `chat-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `chat-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [chat.messages, chat.model]);
+  }, [chat]);
+
+  const handleUploadChat = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const parsed = JSON.parse(content);
+
+          // Validate the structure
+          if (!parsed.chat || !parsed.chat.messages || !Array.isArray(parsed.chat.messages)) {
+            throw new Error("Invalid chat file format");
+          }
+
+          // Load the chat using the loadChat function from useChat
+          if (window.confirm(`Load chat with ${parsed.chat.messages.length} messages? This will replace the current conversation.`)) {
+            loadChat(parsed.chat);
+          }
+        } catch (err) {
+          alert(`Error loading chat file: ${err instanceof Error ? err.message : "Unknown error"}`);
+        }
+      };
+      reader.readAsText(file);
+
+      // Reset file input
+      event.target.value = "";
+    },
+    [loadChat]
+  );
 
   // Get display label for current model
   const currentModelLabel = useMemo(() => {
@@ -298,17 +311,30 @@ export function ChatPanel({
             </Tooltip>
           )}
           {enableExport && (
-            <Tooltip title="Download Chat">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={handleDownloadChat}
-                  disabled={chat.messages.length === 0}
-                >
-                  <DownloadIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
+            <>
+              <Tooltip title="Upload Chat">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleUploadChat}
+                    disabled={responding || compressing}
+                  >
+                    <UploadIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title="Download Chat">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleDownloadChat}
+                    disabled={chat.messages.length === 0}
+                  >
+                    <DownloadIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </>
           )}
           <Tooltip title="New Chat">
             <span>
@@ -561,6 +587,17 @@ export function ChatPanel({
           onModelChange={handleModelChange}
           availableModels={availableModels}
           cheapModels={cheapModels}
+        />
+      )}
+
+      {/* Hidden File Input for Upload */}
+      {enableExport && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          accept=".json"
+          onChange={handleFileChange}
         />
       )}
     </Box>
