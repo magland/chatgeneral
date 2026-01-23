@@ -9,7 +9,6 @@ A customizable AI chat interface for prototyping domain-specific AI assistants. 
 - **AI-Driven Script Execution**: The AI assistant can write and submit Python/shell scripts for execution (you approve each script for security)
 - **Rich Output Display**: Automatic rendering of generated images, interactive visualizations (.figpack), and script results
 - **Multi-Model Support**: Choose from multiple AI models via OpenRouter (GPT, Claude, Gemini, etc.)
-- **Secure Execution**: Local FastAPI server with API key authentication for script execution
 
 ## Quick Start
 
