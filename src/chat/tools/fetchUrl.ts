@@ -4,30 +4,6 @@ import { QPTool, ToolExecutionContext } from "../types";
  * A tool that allows the AI to fetch content from external URLs.
  */
 
-// List of allowed domains to prevent misuse
-const ALLOWED_DOMAINS = [
-  // allow all domains for now
-  "*",
-];
-
-const isUrlAllowed = (url: string): boolean => {
-  if (ALLOWED_DOMAINS.includes("*")) {
-    return true;
-  }
-  try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname.toLowerCase();
-    return ALLOWED_DOMAINS.some((domain) => {
-      const lowerDomain = domain.toLowerCase();
-      return (
-        hostname === lowerDomain || hostname.endsWith("." + lowerDomain)
-      );
-    });
-  } catch {
-    return false;
-  }
-};
-
 export const fetchUrlTool: QPTool = {
   toolFunction: {
     name: "fetch_url",
@@ -39,7 +15,7 @@ export const fetchUrlTool: QPTool = {
         url: {
           type: "string",
           description:
-            "The URL to fetch content from. Must be a valid URL from an allowed domain (scientific publications, DOI resolvers, etc.).",
+            "The URL to fetch content from. Must be a valid URL.",
         },
         reason: {
           type: "string",
@@ -59,9 +35,8 @@ export const fetchUrlTool: QPTool = {
     const { url, reason } = params;
 
     // Validate URL format
-    let parsedUrl: URL;
     try {
-      parsedUrl = new URL(url);
+      new URL(url);
     } catch {
       return {
         result: JSON.stringify({
@@ -71,39 +46,8 @@ export const fetchUrlTool: QPTool = {
       };
     }
 
-    // Check if the domain is allowed
-    if (!isUrlAllowed(url)) {
-      return {
-        result: JSON.stringify({
-          success: false,
-          error: `Domain not allowed: "${parsedUrl.hostname}". For security reasons, only URLs from allowed scientific publication domains can be fetched. Allowed domains include: ${ALLOWED_DOMAINS.slice(0, 10).join(", ")}, and others.`,
-        }),
-      };
-    }
-
     try {
-      // Some APIs support CORS natively, so we can fetch directly
-      // For others, we need to use a CORS proxy
-      const corsEnabledDomains = [
-        "api.openalex.org",
-        "api.crossref.org",
-        "api.ror.org",
-        "ebi.ac.uk",
-        "europepmc.org",
-      ];
-
-      const hostname = parsedUrl.hostname.toLowerCase();
-      const needsProxy = !corsEnabledDomains.some(
-        (domain) => hostname === domain || hostname.endsWith("." + domain)
-      );
-
-      const finalUrl = parsedUrl.toString();
-
-      const fetchUrl = needsProxy
-        ? `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`
-        : finalUrl;
-
-      const response = await fetch(fetchUrl, {
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -135,7 +79,6 @@ export const fetchUrlTool: QPTool = {
       }
 
       // Truncate if too long (to avoid overwhelming the context)
-      // 25000 chars accommodates most OpenAlex responses with full authorship data
       const maxLength = 25000;
       const truncated = content.length > maxLength;
       const finalContent = truncated
@@ -164,7 +107,6 @@ export const fetchUrlTool: QPTool = {
           success: false,
           error: `Error fetching URL: ${error instanceof Error ? error.message : "Unknown error"}`,
           url,
-          hint: "The URL might be inaccessible, blocked by CORS, or the server might be down. Please verify the URL is correct.",
         }),
       };
     }
