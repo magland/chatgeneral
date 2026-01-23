@@ -308,7 +308,8 @@ function App() {
   );
 }
 
-const CACHE_DURATION_MS = 60 * 1000; // 1 minute
+// const CACHE_DURATION_MS = 60 * 1000; // 1 minute
+const CACHE_DURATION_MS = 0; // Disable caching for development
 
 interface CachedInstructions {
   url: string;
