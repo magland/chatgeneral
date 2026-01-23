@@ -242,6 +242,9 @@ function AppContent() {
     />
   )
 
+  // Check if output panel should be hidden via query parameter
+  const hideOutputPanel = new URLSearchParams(window.location.search).get('hide-output-panel') === '1';
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* App Bar */}
@@ -291,6 +294,7 @@ function AppContent() {
           initialLeftWidth={50}
           minLeftWidth={25}
           maxLeftWidth={75}
+          hideRightPanel={hideOutputPanel}
         />
       </Box>
 

@@ -286,6 +286,12 @@ export interface ChatPanelProps {
    * Whether the chat is loading (shows loading indicator)
    */
   isLoading?: boolean;
+
+  /**
+   * Hide tool call/result details (prevent expanding)
+   * @default false
+   */
+  hideToolDetails?: boolean;
 }
 
 /**

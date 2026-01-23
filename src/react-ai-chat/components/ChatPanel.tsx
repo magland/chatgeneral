@@ -47,6 +47,7 @@ export function ChatPanel({
   onChatCleared,
   onModelChange,
   isLoading = false,
+  hideToolDetails = false,
 }: ChatPanelProps) {
   const {
     chat,
@@ -406,6 +407,7 @@ export function ChatPanel({
                   messageIndex={chatIndex}
                   onRevert={revertToMessage}
                   canRevert={canRevert}
+                  hideToolDetails={hideToolDetails}
                 />
               );
             })}

@@ -24,6 +24,7 @@ interface MessageItemProps {
   messageIndex?: number;
   onRevert?: (index: number) => void;
   canRevert?: boolean;
+  hideToolDetails?: boolean;
 }
 
 const messageContentToString = (
@@ -74,12 +75,14 @@ interface ToolCallItemProps {
   name: string;
   argsString: string;
   inProgress: boolean;
+  hideToolDetails?: boolean;
 }
 
 const ToolCallItem: FunctionComponent<ToolCallItemProps> = ({
   name,
   argsString,
   inProgress,
+  hideToolDetails = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const summary = getToolCallSummary(name, argsString);
@@ -94,7 +97,7 @@ const ToolCallItem: FunctionComponent<ToolCallItemProps> = ({
   return (
     <Box sx={{ mb: 0.5 }}>
       <Box
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => !hideToolDetails && setExpanded(!expanded)}
         sx={{
           display: "inline-flex",
           alignItems: "center",
@@ -105,9 +108,11 @@ const ToolCallItem: FunctionComponent<ToolCallItemProps> = ({
           border: 1,
           borderColor: inProgress ? "warning.main" : "success.main",
           backgroundColor: inProgress ? "warning.lighter" : "success.lighter",
-          cursor: "pointer",
+          cursor: hideToolDetails ? "default" : "pointer",
           "&:hover": {
-            backgroundColor: inProgress ? "warning.light" : "success.light",
+            backgroundColor: hideToolDetails
+              ? (inProgress ? "warning.lighter" : "success.lighter")
+              : (inProgress ? "warning.light" : "success.light"),
           },
           transition: "background-color 0.2s",
         }}
@@ -128,50 +133,54 @@ const ToolCallItem: FunctionComponent<ToolCallItemProps> = ({
         >
           {inProgress ? "Calling" : "Called"}: {summary}
         </Typography>
-        <IconButton
-          size="small"
-          sx={{
-            p: 0,
-            ml: 0.5,
-            color: inProgress ? "warning.dark" : "success.dark",
-          }}
-        >
-          {expanded ? (
-            <ExpandLessIcon sx={{ fontSize: 16 }} />
-          ) : (
-            <ExpandMoreIcon sx={{ fontSize: 16 }} />
-          )}
-        </IconButton>
-      </Box>
-      <Collapse in={expanded}>
-        <Box
-          sx={{
-            mt: 0.5,
-            ml: 2,
-            p: 1,
-            backgroundColor: "grey.50",
-            borderRadius: 1,
-            border: 1,
-            borderColor: "grey.300",
-            maxHeight: 200,
-            overflow: "auto",
-          }}
-        >
-          <Typography
-            component="pre"
-            variant="body2"
+        {!hideToolDetails && (
+          <IconButton
+            size="small"
             sx={{
-              fontFamily: "monospace",
-              fontSize: "0.75rem",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              m: 0,
+              p: 0,
+              ml: 0.5,
+              color: inProgress ? "warning.dark" : "success.dark",
             }}
           >
-            {formattedArgs}
-          </Typography>
-        </Box>
-      </Collapse>
+            {expanded ? (
+              <ExpandLessIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <ExpandMoreIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        )}
+      </Box>
+      {!hideToolDetails && (
+        <Collapse in={expanded}>
+          <Box
+            sx={{
+              mt: 0.5,
+              ml: 2,
+              p: 1,
+              backgroundColor: "grey.50",
+              borderRadius: 1,
+              border: 1,
+              borderColor: "grey.300",
+              maxHeight: 200,
+              overflow: "auto",
+            }}
+          >
+            <Typography
+              component="pre"
+              variant="body2"
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.75rem",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                m: 0,
+              }}
+            >
+              {formattedArgs}
+            </Typography>
+          </Box>
+        </Collapse>
+      )}
     </Box>
   );
 };
@@ -189,10 +198,12 @@ const truncateContent = (content: string, maxLength: number = 150): string => {
  */
 interface ToolResultItemProps {
   message: ChatMessage & { role: "tool" };
+  hideToolDetails?: boolean;
 }
 
 const ToolResultItem: FunctionComponent<ToolResultItemProps> = ({
   message,
+  hideToolDetails = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -239,12 +250,12 @@ const ToolResultItem: FunctionComponent<ToolResultItemProps> = ({
         }}
       >
         <Box
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => !hideToolDetails && setExpanded(!expanded)}
           sx={{
             display: "flex",
             alignItems: "flex-start",
             gap: 1,
-            cursor: "pointer",
+            cursor: hideToolDetails ? "default" : "pointer",
           }}
         >
           <BuildIcon
@@ -263,10 +274,10 @@ const ToolResultItem: FunctionComponent<ToolResultItemProps> = ({
                 color: isSuccess ? "success.dark" : "error.dark",
               }}
             >
-              {expanded ? resultContent : previewContent}
+              {expanded || hideToolDetails ? resultContent : previewContent}
             </Typography>
           </Box>
-          {isLongContent && (
+          {isLongContent && !hideToolDetails && (
             <IconButton
               size="small"
               sx={{
@@ -282,7 +293,7 @@ const ToolResultItem: FunctionComponent<ToolResultItemProps> = ({
             </IconButton>
           )}
         </Box>
-        {expanded && fullContent !== resultContent && (
+        {!hideToolDetails && expanded && fullContent !== resultContent && (
           <Collapse in={expanded}>
             <Box
               sx={{
@@ -323,6 +334,7 @@ const MessageItem: FunctionComponent<MessageItemProps> = ({
   messageIndex,
   onRevert,
   canRevert = false,
+  hideToolDetails = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -431,6 +443,7 @@ const MessageItem: FunctionComponent<MessageItemProps> = ({
                       name={toolCall.function.name}
                       argsString={toolCall.function.arguments}
                       inProgress={inProgress}
+                      hideToolDetails={hideToolDetails}
                     />
                   ))}
                 </Box>
@@ -469,7 +482,7 @@ const MessageItem: FunctionComponent<MessageItemProps> = ({
   }
 
   if (message.role === "tool") {
-    return <ToolResultItem message={message} />;
+    return <ToolResultItem message={message} hideToolDetails={hideToolDetails} />;
   }
 
   return null;

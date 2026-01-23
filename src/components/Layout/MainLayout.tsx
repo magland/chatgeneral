@@ -7,6 +7,7 @@ interface MainLayoutProps {
   initialLeftWidth?: number; // percentage
   minLeftWidth?: number; // percentage
   maxLeftWidth?: number; // percentage
+  hideRightPanel?: boolean;
 }
 
 export function MainLayout({
@@ -15,6 +16,7 @@ export function MainLayout({
   initialLeftWidth = 50,
   minLeftWidth = 20,
   maxLeftWidth = 80,
+  hideRightPanel = false,
 }: MainLayoutProps) {
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
@@ -67,12 +69,14 @@ export function MainLayout({
         height: '100%',
         width: '100%',
         overflow: 'hidden',
+        justifyContent: hideRightPanel ? 'center' : 'flex-start',
       }}
     >
       {/* Left Panel */}
       <Box
         sx={{
-          width: `${leftWidth}%`,
+          width: hideRightPanel ? '100%' : `${leftWidth}%`,
+          maxWidth: hideRightPanel ? '1200px' : 'none',
           height: '100%',
           overflow: 'auto',
           flexShrink: 0,
@@ -81,33 +85,37 @@ export function MainLayout({
         {leftPanel}
       </Box>
 
-      {/* Resizable Divider */}
-      <Box
-        onMouseDown={handleMouseDown}
-        sx={{
-          width: '6px',
-          height: '100%',
-          backgroundColor: isDragging ? 'primary.main' : 'divider',
-          cursor: 'col-resize',
-          flexShrink: 0,
-          transition: isDragging ? 'none' : 'background-color 0.2s',
-          '&:hover': {
-            backgroundColor: 'primary.light',
-          },
-        }}
-      />
+      {/* Resizable Divider - hidden when right panel is hidden */}
+      {!hideRightPanel && (
+        <Box
+          onMouseDown={handleMouseDown}
+          sx={{
+            width: '6px',
+            height: '100%',
+            backgroundColor: isDragging ? 'primary.main' : 'divider',
+            cursor: 'col-resize',
+            flexShrink: 0,
+            transition: isDragging ? 'none' : 'background-color 0.2s',
+            '&:hover': {
+              backgroundColor: 'primary.light',
+            },
+          }}
+        />
+      )}
 
-      {/* Right Panel */}
-      <Box
-        sx={{
-          flex: 1,
-          height: '100%',
-          overflow: 'auto',
-          minWidth: 0,
-        }}
-      >
-        {rightPanel}
-      </Box>
+      {/* Right Panel - hidden when hideRightPanel is true */}
+      {!hideRightPanel && (
+        <Box
+          sx={{
+            flex: 1,
+            height: '100%',
+            overflow: 'auto',
+            minWidth: 0,
+          }}
+        >
+          {rightPanel}
+        </Box>
+      )}
     </Box>
   );
 }

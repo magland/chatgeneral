@@ -119,6 +119,31 @@ suggestions-enabled: false  # Disable suggestions
 
 When suggestions are disabled, the AI will not be instructed to include suggested prompts, and the suggestion UI will be hidden.
 
+### URL Query Parameters
+
+You can customize the app behavior using URL query parameters:
+
+**hide-output-panel=1**: Hides the output panel on the right side and centers the chat panel
+```
+?instructions=https://example.com/instructions.md&hide-output-panel=1
+```
+> **Note**: If you hide the output panel and want the assistant to run scripts, you'll also need `auto-approve=1` since the approval buttons are in the output panel.
+
+**auto-approve=1**: Automatically approves all script executions without requiring manual approval (use with caution!)
+```
+?instructions=https://example.com/instructions.md&auto-approve=1
+```
+
+**hide-tool-details=1**: Prevents expanding tool call/result details in the chat interface
+```
+?instructions=https://example.com/instructions.md&hide-tool-details=1
+```
+
+You can combine multiple parameters:
+```
+?instructions=https://example.com/instructions.md&hide-output-panel=1&auto-approve=1&hide-tool-details=1
+```
+
 ## API Keys
 
 You'll need an OpenRouter API key to use the chat functionality:

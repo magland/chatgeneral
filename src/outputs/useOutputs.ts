@@ -46,6 +46,21 @@ export const useOutputs = () => {
    * Request approval for a script execution
    */
   const requestApproval = useCallback((outputId: string): Promise<boolean> => {
+    // Check for auto-approve query parameter
+    const autoApprove = new URLSearchParams(window.location.search).get('auto-approve') === '1';
+    
+    if (autoApprove) {
+      // Auto-approve and update output state immediately
+      setOutputs(prev => prev.map(o => {
+        if (o.id === outputId && (o.type === 'script')) {
+          return { ...o, metadata: { ...o.metadata, pendingApproval: false, approved: true }};
+        }
+        return o;
+      }));
+      return Promise.resolve(true);
+    }
+    
+    // Normal approval flow
     return new Promise((resolve, reject) => {
       approvalPromisesRef.current.set(outputId, { resolve, reject });
     });

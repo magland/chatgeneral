@@ -31,6 +31,9 @@ export function ChatGeneralChatPanel(
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [currentModel, setCurrentModel] = useState(DEFAULT_MODEL);
 
+  // Check for hide-tool-details query parameter
+  const hideToolDetails = new URLSearchParams(window.location.search).get('hide-tool-details') === '1';
+
   // Check if API key is required but not present
   const requiresApiKey = !CHEAP_MODELS.includes(currentModel);
   const hasApiKey = !!getStoredOpenRouterApiKey();
@@ -193,6 +196,7 @@ Available tools:
           enableModelSelection={true}
           isLoading={showLoading}
           onModelChange={handleModelChange}
+          hideToolDetails={hideToolDetails}
         />
       </Box>
 
