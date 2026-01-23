@@ -17,8 +17,9 @@ const PHRASES_TO_CHECK = [
 ];
 
 export function ChatGeneralChatPanel(
-  { instructions, instructionsLoading, outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus }: {
+  { instructions, instructionsError, instructionsLoading, outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus }: {
     instructions: string | null;
+    instructionsError: string | null;
     instructionsLoading: boolean;
     outputEmitter: OutputEmitter;
     requestApproval: (outputId: string) => Promise<boolean>;
@@ -97,7 +98,24 @@ Available tools:
     return null;
   }, [instructions]);
 
-  const emptyStateContent: ReactNode = (
+  const emptyStateContent: ReactNode = instructionsError ? (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 4,
+        textAlign: "center",
+      }}
+    >
+      <Alert severity="error">
+        <Typography variant="h6" gutterBottom>
+          Configuration Error
+        </Typography>
+        <Typography variant="body2">
+          {instructionsError}
+        </Typography>
+      </Alert>
+    </Paper>
+  ) : (
     <Paper
       elevation={0}
       sx={{
@@ -154,7 +172,9 @@ Available tools:
           cheapModels={CHEAP_MODELS}
           title="Assistant"
           placeholder={
-            needsApiKey
+            instructionsError
+              ? "Fix configuration errors to continue..."
+              : needsApiKey
                 ? "API key required..."
                 : "Type your message here..."
           }
@@ -163,7 +183,7 @@ Available tools:
           enableCompression={true}
           enableExport={true}
           enableModelSelection={true}
-          isLoading={isLoading}
+          isLoading={!!instructionsError || isLoading}
           onModelChange={handleModelChange}
         />
       </Box>

@@ -49,6 +49,66 @@ const theme = createTheme({
   },
 });
 
+// Extract all query parameters except 'instructions'
+const getAllQueryParameters = (): Record<string, string> => {
+  const params = new URLSearchParams(window.location.search);
+  const result: Record<string, string> = {};
+  params.forEach((value, key) => {
+    if (key !== 'instructions') {
+      result[key] = decodeURIComponent(value);
+    }
+  });
+  return result;
+};
+
+// Parse the "parameters:" line from instructions
+const parseRequiredParameters = (text: string): string[] | null => {
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.toLowerCase().startsWith('parameters:')) {
+      const paramsStr = trimmed.substring(trimmed.indexOf(':') + 1).trim();
+      return paramsStr.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    }
+  }
+  return null;
+};
+
+// Escape special regex characters in parameter names
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Process instructions: validate params and substitute
+const processInstructions = (
+  templateText: string,
+  queryParams: Record<string, string>
+): { success: boolean; error: string | null; text: string | null } => {
+  const required = parseRequiredParameters(templateText);
+  
+  if (required && required.length > 0) {
+    // Check for missing parameters
+    const missing = required.filter(param => !(param in queryParams));
+    
+    if (missing.length > 0) {
+      return {
+        success: false,
+        error: `Missing required parameters: ${missing.join(', ')}`,
+        text: null
+      };
+    }
+  }
+  
+  // Replace all ${param} placeholders
+  let processed = templateText;
+  for (const [key, value] of Object.entries(queryParams)) {
+    const regex = new RegExp(`\\$\\{${escapeRegex(key)}\\}`, 'g');
+    processed = processed.replace(regex, value);
+  }
+  
+  return { success: true, error: null, text: processed };
+};
+
 const getInstructionsUrlFromQuery = (): string | null => {
   const search = window.location.search;
   if (!search) return null;
@@ -84,7 +144,7 @@ function AppContent() {
 
   const instructionsUrl = useInstructionsUrlFromQuery();
 
-  const { instructions, instructionsLoading, reloadInstructions } = useInstructions(instructionsUrl);
+  const { instructions, instructionsError, instructionsLoading, reloadInstructions } = useInstructions(instructionsUrl);
 
   const handleInstructions = useCallback((url: string | null) => {
     // set the query parameter without reloading the page
@@ -153,6 +213,7 @@ function AppContent() {
   const leftPanel = (
     <ChatGeneralChatPanel
       instructions={instructions}
+      instructionsError={instructionsError}
       instructionsLoading={instructionsLoading}
       outputEmitter={outputEmitter}
       requestApproval={outputsHook.requestApproval}
@@ -290,39 +351,62 @@ const setCachedInstructions = (url: string, text: string): void => {
 
 const useInstructions = (url: string | null) => {
   const [instructions, setInstructions] = useState<string | null>(null);
+  const [instructionsError, setInstructionsError] = useState<string | null>(null);
   const [instructionsLoading, setInstructionsLoading] = useState<boolean>(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     if (!url) {
       setInstructions(null);
+      setInstructionsError(null);
       return;
     }
+
+    const queryParams = getAllQueryParameters();
 
     // Check if this is a local instructions reference
     if (url.startsWith('local:')) {
       const name = url.substring(6); // Remove 'local:' prefix
       const localKey = `local_instructions_${name}`;
-      const localInstructions = localStorage.getItem(localKey);
+      const templateText = localStorage.getItem(localKey);
       
-      if (localInstructions) {
+      if (templateText) {
         console.info('Using local instructions:', name);
-        console.info(localInstructions);
-        setInstructions(localInstructions);
+        console.info(templateText);
+        
+        // Process with parameters
+        const result = processInstructions(templateText, queryParams);
+        if (result.success) {
+          setInstructions(result.text);
+          setInstructionsError(null);
+        } else {
+          setInstructions(null);
+          setInstructionsError(result.error);
+        }
       } else {
         console.info('No local instructions found for:', name);
         setInstructions(`No local instructions found for "${name}". Click "Edit Instructions" to create them.`);
+        setInstructionsError(null);
       }
       setInstructionsLoading(false);
       return;
     }
 
-    // Check cache first
-    const cached = getCachedInstructions(url);
-    if (cached) {
-      console.info('Using cached instructions');
-      console.info(cached);
-      setInstructions(cached);
+    // Check cache for template
+    const cachedTemplate = getCachedInstructions(url);
+    if (cachedTemplate) {
+      console.info('Using cached instructions template');
+      console.info(cachedTemplate);
+      
+      // Process with parameters
+      const result = processInstructions(cachedTemplate, queryParams);
+      if (result.success) {
+        setInstructions(result.text);
+        setInstructionsError(null);
+      } else {
+        setInstructions(null);
+        setInstructionsError(result.error);
+      }
       setInstructionsLoading(false);
       return;
     }
@@ -336,17 +420,30 @@ const useInstructions = (url: string | null) => {
         if (!response.ok) {
           throw new Error(`Failed to fetch instructions from ${url}: ${response.statusText}`);
         }
-        const text = await response.text();
+        const templateText = await response.text();
+        
         if (!isCancelled) {
-          console.info('INSTRUCTIONS:')
-          console.info(text)
-          setInstructions(text);
-          setCachedInstructions(url, text);
+          console.info('INSTRUCTIONS TEMPLATE:')
+          console.info(templateText)
+          
+          // Cache the raw template
+          setCachedInstructions(url, templateText);
+          
+          // Process with parameters
+          const result = processInstructions(templateText, queryParams);
+          if (result.success) {
+            setInstructions(result.text);
+            setInstructionsError(null);
+          } else {
+            setInstructions(null);
+            setInstructionsError(result.error);
+          }
         }
       } catch (error) {
         console.error(error);
         if (!isCancelled) {
-          setInstructions(`Error loading instructions: ${error}`);
+          setInstructions(null);
+          setInstructionsError(`Error loading instructions: ${error}`);
         }
       } finally {
         if (!isCancelled) {
@@ -366,7 +463,7 @@ const useInstructions = (url: string | null) => {
     setReloadTrigger(prev => prev + 1);
   }, []);
 
-  return { instructions, instructionsLoading, reloadInstructions };
+  return { instructions, instructionsError, instructionsLoading, reloadInstructions };
 };
 
 const filterInstructionsUrl = (url: string): string => {
