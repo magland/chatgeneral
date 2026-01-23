@@ -102,6 +102,23 @@ Welcome: Ready to analyze ${dataset_name}!
 
 Parameters work with both remote and local instructions. Missing required parameters show an error.
 
+### Special Configuration Options
+
+You can include special configuration directives in your instruction files:
+
+**Welcome Message**: Display a custom welcome message
+```markdown
+welcome: Ready to help with your data analysis!
+```
+
+**Suggestions**: Control whether the AI provides suggested follow-up prompts (default: enabled)
+```markdown
+suggestions-enabled: true   # Enable suggestion chips (default)
+suggestions-enabled: false  # Disable suggestions
+```
+
+When suggestions are disabled, the AI will not be instructed to include suggested prompts, and the suggestion UI will be hidden.
+
 ## API Keys
 
 You'll need an OpenRouter API key to use the chat functionality:

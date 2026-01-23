@@ -79,6 +79,19 @@ const escapeRegex = (str: string): string => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+// Parse the "suggestions-enabled:" line from instructions
+const parseSuggestionsEnabled = (text: string): boolean => {
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.toLowerCase().startsWith('suggestions-enabled:')) {
+      const value = trimmed.substring(trimmed.indexOf(':') + 1).trim().toLowerCase();
+      return value === 'true';
+    }
+  }
+  return true; // Default to true if not specified
+};
+
 // Process instructions: validate params and substitute
 const processInstructions = (
   templateText: string,
@@ -144,7 +157,7 @@ function AppContent() {
 
   const instructionsUrl = useInstructionsUrlFromQuery();
 
-  const { instructions, instructionsError, instructionsLoading, reloadInstructions } = useInstructions(instructionsUrl);
+  const { instructions, instructionsError, instructionsLoading, suggestionsEnabled, reloadInstructions } = useInstructions(instructionsUrl);
 
   const handleInstructions = useCallback((url: string | null) => {
     // set the query parameter without reloading the page
@@ -215,6 +228,7 @@ function AppContent() {
       instructions={instructions}
       instructionsError={instructionsError}
       instructionsLoading={instructionsLoading}
+      suggestionsEnabled={suggestionsEnabled}
       outputEmitter={outputEmitter}
       requestApproval={outputsHook.requestApproval}
       updateServerHealth={outputsHook.updateServerHealth}
@@ -354,6 +368,7 @@ const useInstructions = (url: string | null) => {
   const [instructions, setInstructions] = useState<string | null>(null);
   const [instructionsError, setInstructionsError] = useState<string | null>(null);
   const [instructionsLoading, setInstructionsLoading] = useState<boolean>(false);
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState<boolean>(true);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
@@ -374,6 +389,9 @@ const useInstructions = (url: string | null) => {
       if (templateText) {
         console.info('Using local instructions:', name);
         console.info(templateText);
+        
+        // Parse suggestions-enabled setting
+        setSuggestionsEnabled(parseSuggestionsEnabled(templateText));
         
         // Process with parameters
         const result = processInstructions(templateText, queryParams);
@@ -398,6 +416,9 @@ const useInstructions = (url: string | null) => {
     if (cachedTemplate) {
       console.info('Using cached instructions template');
       console.info(cachedTemplate);
+      
+      // Parse suggestions-enabled setting
+      setSuggestionsEnabled(parseSuggestionsEnabled(cachedTemplate));
       
       // Process with parameters
       const result = processInstructions(cachedTemplate, queryParams);
@@ -426,6 +447,9 @@ const useInstructions = (url: string | null) => {
         if (!isCancelled) {
           console.info('INSTRUCTIONS TEMPLATE:')
           console.info(templateText)
+          
+          // Parse suggestions-enabled setting
+          setSuggestionsEnabled(parseSuggestionsEnabled(templateText));
           
           // Cache the raw template
           setCachedInstructions(url, templateText);
@@ -464,7 +488,7 @@ const useInstructions = (url: string | null) => {
     setReloadTrigger(prev => prev + 1);
   }, []);
 
-  return { instructions, instructionsError, instructionsLoading, reloadInstructions };
+  return { instructions, instructionsError, instructionsLoading, suggestionsEnabled, reloadInstructions };
 };
 
 const filterInstructionsUrl = (url: string): string => {

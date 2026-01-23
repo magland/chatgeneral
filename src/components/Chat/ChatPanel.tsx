@@ -17,10 +17,11 @@ const PHRASES_TO_CHECK = [
 ];
 
 export function ChatGeneralChatPanel(
-  { instructions, instructionsError, instructionsLoading, outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus }: {
+  { instructions, instructionsError, instructionsLoading, suggestionsEnabled, outputEmitter, requestApproval, updateServerHealth, updateExecutionStatus }: {
     instructions: string | null;
     instructionsError: string | null;
     instructionsLoading: boolean;
+    suggestionsEnabled: boolean;
     outputEmitter: OutputEmitter;
     requestApproval: (outputId: string) => Promise<boolean>;
     updateServerHealth: (outputId: string, status: 'checking' | 'healthy' | 'unhealthy', error?: string) => void;
@@ -47,7 +48,10 @@ INSTRUCTIONS:
 ${instructionsLoading ? "Loading instructions..." : (instructions ? instructions : "No instructions provided.")}
 
 If the user wants to make a test script or generate a test plot, that is okay.
+`);
 
+    if (suggestionsEnabled) {
+      parts.push(`
 **SUGGESTED PROMPTS:**
 - You can include suggested follow-up prompts for the user in any of your responses
 - Add a single line starting with "suggestions:" followed by comma-separated prompts
@@ -55,7 +59,10 @@ If the user wants to make a test script or generate a test plot, that is okay.
 - Suggestions must be very short (3-8 words max) - they appear as clickable chips
 - Suggestions must be phrased as USER messages (they get submitted as if the user typed them)
 - Make suggestions relevant to the current context and conversation
+`);
+    }
 
+    parts.push(`
 ${PHRASES_TO_CHECK.map(phrase => `- ${phrase}`).join('\n')}
 
 `);
@@ -69,7 +76,7 @@ Available tools:
     }
 
     return parts.join("\n\n");
-  }, [instructions, instructionsLoading]);
+  }, [instructions, instructionsLoading, suggestionsEnabled]);
 
   // Build tool context for execution
   const toolContext: ToolContext = useMemo(() => ({
@@ -180,7 +187,7 @@ Available tools:
                 : "Type your message here..."
           }
           emptyStateContent={emptyStateContent}
-          enableSuggestions={true}
+          enableSuggestions={suggestionsEnabled}
           enableCompression={true}
           enableExport={true}
           enableModelSelection={true}
