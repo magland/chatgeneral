@@ -1,7 +1,6 @@
 import { QPTool, ToolExecutionContext } from "../types";
 import { getServerUrl } from "../../serverConfig";
-
-const API_KEY = "z9-local-file-access-key-2026";
+import { getOrPromptPasscode, promptForPasscode, storePasscode, clearPasscode } from "../passcodeStorage";
 
 // Supported image file extensions
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.bmp', '.webp'];
@@ -154,8 +153,11 @@ export const runScriptTool: QPTool = {
       });
     }
 
-    try {
-      const response = await fetch(`${getServerUrl()}/api/run-script`, {
+    const serverUrl = getServerUrl();
+    
+    // Helper function to make the API request with a passcode
+    const makeRequest = async (passcode: string) => {
+      return await fetch(`${serverUrl}/api/run-script`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,9 +166,54 @@ export const runScriptTool: QPTool = {
           script,
           scriptType,
           timeout,
-          apiKey: API_KEY,
+          passcode,
         }),
       });
+    };
+
+    try {
+      // Try to get passcode (from storage or prompt)
+      let passcode = await getOrPromptPasscode(serverUrl);
+      
+      if (!passcode) {
+        // User cancelled the prompt
+        if (context.updateExecutionStatus && outputId) {
+          context.updateExecutionStatus(outputId, 'failed');
+        }
+        return {
+          result: JSON.stringify({
+            success: false,
+            error: "Passcode required but not provided",
+          }),
+        };
+      }
+
+      let response = await makeRequest(passcode);
+
+      // If passcode is invalid (401), clear it and retry once
+      if (response.status === 401) {
+        clearPasscode(serverUrl);
+        
+        // Prompt for new passcode
+        passcode = promptForPasscode(serverUrl);
+        
+        if (!passcode) {
+          // User cancelled the retry prompt
+          if (context.updateExecutionStatus && outputId) {
+            context.updateExecutionStatus(outputId, 'failed');
+          }
+          return {
+            result: JSON.stringify({
+              success: false,
+              error: "Invalid passcode. Authentication cancelled.",
+            }),
+          };
+        }
+        
+        // Store the new passcode and retry
+        storePasscode(serverUrl, passcode);
+        response = await makeRequest(passcode);
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -177,8 +224,8 @@ export const runScriptTool: QPTool = {
         return {
           result: JSON.stringify({
             success: false,
-            error: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-            hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server",
+            error: errorData.error || errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+            hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server --passcode <your-passcode>",
           }),
         };
       }
@@ -323,7 +370,7 @@ export const runScriptTool: QPTool = {
         result: JSON.stringify({
           success: false,
           error: `Failed to connect to file server: ${error instanceof Error ? error.message : "Unknown error"}`,
-          hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server",
+          hint: "Make sure the local file server is running on port 3339. Start it with: chatgeneral start-server --passcode <your-passcode>",
         }),
       };
     }

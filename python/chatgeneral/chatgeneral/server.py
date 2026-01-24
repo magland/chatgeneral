@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
-API_KEY = "z9-local-file-access-key-2026"
+# Global variable to store the server's passcode
+SERVER_PASSCODE: Optional[str] = None
 
 app = FastAPI(title="ChatGeneral Script Execution Server")
 
@@ -36,7 +37,7 @@ class RunScriptRequest(BaseModel):
     script: str
     scriptType: str = "python"  # "python" or "shell"
     timeout: int = 10
-    apiKey: str
+    passcode: str
 
 
 class RunScriptResponse(BaseModel):
@@ -53,9 +54,9 @@ class RunScriptResponse(BaseModel):
     error: Optional[str] = None
 
 
-def validate_api_key(api_key: str) -> bool:
-    """Validate the API key"""
-    return api_key == API_KEY
+def validate_passcode(passcode: str) -> bool:
+    """Validate the passcode"""
+    return passcode == SERVER_PASSCODE
 
 
 def is_safe_path(base_dir: Path, requested_path: str) -> bool:
@@ -127,9 +128,9 @@ def get_directories_in_directory(directory: Path) -> set[str]:
 async def run_script(request: RunScriptRequest):
     """Execute a script (Python or shell) in a timestamped temporary directory"""
     
-    # Validate API key
-    if not validate_api_key(request.apiKey):
-        raise HTTPException(status_code=401, detail="Invalid API key")
+    # Validate passcode
+    if not validate_passcode(request.passcode):
+        raise HTTPException(status_code=401, detail="Invalid passcode")
 
     # Validate script type
     if request.scriptType not in ["python", "shell"]:
@@ -300,17 +301,19 @@ async def health_check():
     return {"status": "ok", "workingDir": str(SERVER_WORKING_DIR)}
 
 
-def create_app(working_dir: Path) -> FastAPI:
-    """Create and configure the FastAPI app with a working directory"""
-    global SERVER_WORKING_DIR
+def create_app(working_dir: Path, passcode: str) -> FastAPI:
+    """Create and configure the FastAPI app with a working directory and passcode"""
+    global SERVER_WORKING_DIR, SERVER_PASSCODE
     SERVER_WORKING_DIR = working_dir
+    SERVER_PASSCODE = passcode
     return app
 
 
-def run_server(working_dir: Path, host: str = "127.0.0.1", port: int = 3339):
+def run_server(working_dir: Path, host: str = "127.0.0.1", port: int = 3339, passcode: str = ""):
     """Run the server with uvicorn"""
-    global SERVER_WORKING_DIR
+    global SERVER_WORKING_DIR, SERVER_PASSCODE
     SERVER_WORKING_DIR = working_dir
+    SERVER_PASSCODE = passcode
     
     import uvicorn
     

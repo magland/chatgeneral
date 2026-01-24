@@ -30,6 +30,11 @@ def main():
         default=Path.cwd(),
         help="Working directory for the server (default: current directory)",
     )
+    start_parser.add_argument(
+        "--passcode",
+        required=True,
+        help="Passcode required for authentication (required)",
+    )
 
     args = parser.parse_args()
 
@@ -43,11 +48,12 @@ def main():
         print(f"  Working directory: {working_dir}")
         print(f"  Host: {args.host}")
         print(f"  Port: {args.port}")
+        print(f"  Passcode: {args.passcode}")
         print()
         
         from .server import run_server
         
-        run_server(working_dir, host=args.host, port=args.port)
+        run_server(working_dir, host=args.host, port=args.port, passcode=args.passcode)
     else:
         parser.print_help()
         sys.exit(1)
