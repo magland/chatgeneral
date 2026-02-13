@@ -33,18 +33,10 @@ export const fetchUrlTool: QPTool = {
     _context: ToolExecutionContext
   ) => {
     const { url, reason } = params;
-    let rawUrl = url;
-
-    // if a github url, convert to raw url
-    if (url.startsWith("https://github.com")) {
-      rawUrl = rawUrl
-        .replace("github.com", "raw.githubusercontent.com")
-        .replace("/blob/", "/");
-    }
 
     // Validate URL format
     try {
-      new URL(rawUrl);
+      new URL(url);
     } catch {
       return {
         result: JSON.stringify({
